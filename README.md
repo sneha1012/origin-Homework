@@ -1,6 +1,6 @@
 # Cedar Kids Therapy — Referral Inbox Triage Agent
 
-`TypeScript` · `Node LTS` · `npm` · runs **with or without** an LLM key · `npm run validate` ✓ · `npm run eval` ✓
+`TypeScript` · `Node LTS` · `npm` · runs **with or without** an LLM key · `npm run validate`  · `npm run eval` 
 
 An AI agent prototype that turns a messy Monday-morning shared inbox (pediatrician fax
 referrals, parent voicemails, portal messages, emails) into a sorted, **human-reviewable**
