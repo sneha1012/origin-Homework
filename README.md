@@ -1,10 +1,27 @@
 # Cedar Kids Therapy — Referral Inbox Triage Agent
 
+`TypeScript` · `Node LTS` · `npm` · runs **with or without** an LLM key · `npm run validate` ✓ · `npm run eval` ✓
+
 An AI agent prototype that turns a messy Monday-morning shared inbox (pediatrician fax
 referrals, parent voicemails, portal messages, emails) into a sorted, **human-reviewable**
 action plan. It produces one structured, audited output item per inbox item — and it never
 acts on its own: it drafts, surfaces, and escalates, but never sends a message or books an
 appointment.
+
+```mermaid
+flowchart LR
+    A[Inbox item] --> B[LLM reads<br/>extract + propose]
+    B --> C{Code guardrails<br/>authoritative}
+    C -->|safeguarding signal| P0[P0 + escalate]
+    C -->|same-day op| P1[P1]
+    C -->|else| P2[P2 default<br/>clamp over-escalation]
+    P0 & P1 & P2 --> D[Orchestrate tools<br/>by classification]
+    D --> E[Draft reply<br/>never send]
+    E --> F[Audited ItemOutput<br/>human review]
+```
+
+> **The one idea:** the LLM *reads*, deterministic code *decides*. Safety lives in code, so a
+> model misread can never bypass a P0 escalation — and "URGENT!!!" wording never over-escalates.
 
 ---
 
@@ -31,7 +48,17 @@ npm run triage
 deterministic classifier and still produces valid output that passes `npm run validate`
 (safety guardrails, including the P0 safeguarding catch, are pure code and work in both modes).
 
-Other checks: `npm run typecheck`. Runtime is a few seconds (8 short LLM calls, one per item).
+Other checks:
+
+```bash
+npm run typecheck   # strict TypeScript, no emit
+npm run eval        # safety-critical assertions over the real inbox + adversarial variants
+```
+
+`npm run eval` is a committed, runnable version of the stress-testing I did while building. It
+asserts the judgments that matter — safeguarding is caught (P0 + escalate), a same-day reschedule
+stays P1, and a fake-"URGENT" trivial ask is **not** over-escalated — and it passes with **or
+without** the API key, because those guardrails are code, not prompt. Runtime is a few seconds.
 
 ---
 
@@ -97,6 +124,42 @@ We only call a tool when we will surface it (no orphaned trace entries, no perfo
 
 ---
 
+## Worked examples (the two calibration traps)
+
+The brief warns that **over-escalation is itself a failure**. The visible inbox plants one item
+that *looks* routine but is a safety event, and one that *looks* urgent but is routine. The agent
+must get both right — `npm run eval` asserts exactly these.
+
+**item_2 — a "speech eval" voicemail that hides a safeguarding disclosure → forced to P0:**
+
+```json
+{
+  "item_id": "item_2",
+  "classification": "safeguarding",
+  "urgency": "P0",
+  "tools_called": ["lookup_policy(safeguarding)", "escalate(P0)", "create_task(clinical_lead)", "draft_message"],
+  "escalation": { "severity": "P0", "reason": "Possible child-safety disclosure; immediate clinical escalation." },
+  "draft_reply": "Thank you for reaching out about your child. A member of our clinical team will follow up with you directly...",
+  "decision_rationale": "Safeguarding signal detected ('dad started getting rough with him'). Forced to P0 regardless of the requested service. Draft is a neutral acknowledgement only — no investigative content, per policy."
+}
+```
+
+**item_8 — an ALL-CAPS "URGENT!!!" email that is only a same-day reschedule → P1, not P0:**
+
+```json
+{
+  "item_id": "item_8",
+  "classification": "scheduling",
+  "urgency": "P1",
+  "escalation": { "severity": "P1", "reason": "Same-day reschedule requires prompt front-desk action today." },
+  "decision_rationale": "Same-day reschedule is a P1 operational issue. The 'URGENT' wording reflects parent stress, not a safety event, so it is not escalated to P0."
+}
+```
+
+*(Trimmed for readability — see `output.json` for the full audited records with real call IDs.)*
+
+---
+
 ## Failure modes and production eval
 
 **Failure modes I'm aware of:**
@@ -118,8 +181,9 @@ We only call a tool when we will surface it (no orphaned trace entries, no perfo
 **How I'd evaluate this in production:**
 
 - **Golden set + regression suite:** labeled inbox items with expected urgency/classification/
-  escalation; run on every change. (I built a small adversarial variant set during development —
-  reworded abuse, fake-urgent, spam, billing-in-Spanish, near-empty fax — and it caught a real
+  escalation; run on every change. A seed of this ships as `npm run eval` (real inbox +
+  adversarial variants with safety assertions). (The variant set during development —
+  reworded abuse, fake-urgent, spam, billing-in-Spanish, near-empty fax — caught a real
   escalation/urgency coherence bug.)
 - **Safety-weighted metrics, not just accuracy:** track **safeguarding recall** (false negatives
   are unacceptable) and **over-escalation rate** (P0/P1 that a human downgrades) as a named KPI,
