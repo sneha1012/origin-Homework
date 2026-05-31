@@ -13,7 +13,7 @@ appointment.
 ```bash
 npm install
 
-# defaults shown; flags are optional and paths are not hardcoded
+# defaults shown
 npm run triage   -- --input data/inbox.json --output output.json --trace .trace/tool-calls.jsonl
 npm run validate -- --input data/inbox.json --output output.json --trace .trace/tool-calls.jsonl
 ```
@@ -23,7 +23,7 @@ Both commands also work with **no flags** and default to the paths above.
 To enable the runtime LLM (recommended), set the key in your environment first:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-...        # synthetic data only; never commit this
+export ANTHROPIC_API_KEY=sk-...        # synthetic data 
 npm run triage
 ```
 
