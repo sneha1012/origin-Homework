@@ -4,7 +4,7 @@
 
 An AI agent prototype that turns a messy Monday-morning shared inbox (pediatrician fax
 referrals, parent voicemails, portal messages, emails) into a sorted, **human-reviewable**
-action plan. It produces one structured, audited output item per inbox item — and it never
+action plan. It produces one structured, audited output item per inbox item and it never
 acts on its own: it drafts, surfaces, and escalates, but never sends a message or books an
 appointment.
 
